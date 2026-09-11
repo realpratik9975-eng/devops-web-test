@@ -22,5 +22,18 @@ pipeline {
                 sh 'echo "Deploying application to DEV..."'
             }
         }
+
+        stage('Approval for PROD') {
+            steps {
+                input message: 'Approve deployment to PROD?', 
+                      ok: 'Deploy to PROD'
+            }
+        }
+
+        stage('Deploy PROD') {
+            steps {
+                sh 'echo "Deploying application to PROD..."'
+            }
+        }
     }
 }
