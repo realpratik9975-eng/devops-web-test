@@ -7,9 +7,9 @@ pipeline {
             steps {
                 sh 'python3 --version'
                 sh 'ls -la'
-            }
+                sh 'docker build -t metrics-server:jenkins-${BUILD_NUMBER} .'
+            } 
         }
-
         stage('Test') {
             steps {
                 sh 'test -f index.html'
