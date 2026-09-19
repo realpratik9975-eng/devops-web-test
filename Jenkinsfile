@@ -11,15 +11,6 @@ pipeline {
             } 
         }
 
-        stage('Health Check DEV') {
-            steps {
-                sh '''
-                    sleep 2
-                    curl -f http://localhost:8001/metrics
-                '''
-            }
-        }
-
         stage('Test') {
             steps {
                 sh 'test -f index.html'
@@ -45,6 +36,16 @@ EOF
         '''
             }
         }
+
+        stage('Health Check DEV') {
+            steps {
+                sh '''
+                    sleep 2
+                    curl -f http://localhost:8001/metrics
+                '''
+            }
+        }
+      
 
         stage('Approval for PROD') {
             steps {
