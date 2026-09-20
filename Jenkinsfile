@@ -43,24 +43,25 @@ pipeline {
         }
 
         stage('Deploy DEV') {
-    steps {
-        sh '''
+            steps {
+                sh '''
             cat > access.log <<EOF
-127.0.0.1 - - [19/Sep/2026 12:00:00] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [19/Sep/2026 12:00:01] "GET /abc HTTP/1.1" 404 -
+127.0.0.1 - - [20/Sep/2026 12:00:00] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Sep/2026 12:00:01] "GET /abc HTTP/1.1" 404 -
 EOF
 
             docker rm -f metrics-app-dev || true
+
+            docker pull pratik8595/metrics-server:jenkins-${BUILD_NUMBER}
 
             docker run -d \
               --name metrics-app-dev \
               -p 8001:8000 \
               -v "$WORKSPACE/access.log:/app/access.log:ro" \
-              metrics-server:jenkins-${BUILD_NUMBER}
+              pratik8595/metrics-server:jenkins-${BUILD_NUMBER}
         '''
-            }
-        }
-
+    }
+}
         stage('Health Check DEV') {
             steps {
                 sh '''
