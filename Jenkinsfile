@@ -10,6 +10,30 @@ pipeline {
                 sh 'docker build -t metrics-server:jenkins-${BUILD_NUMBER} .'
             } 
         }
+    stage('Push Image') {
+        steps {
+            withCredentials([
+                usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USERNAME',
+                    passwordVariable: 'DOCKER_PASSWORD'
+            )
+        ]) {
+                sh '''
+                    echo "$DOCKER_PASSWORD" | docker login \
+                        --username "$DOCKER_USERNAME" \
+                        --password-stdin
+
+                    docker tag \
+                        metrics-server:jenkins-${BUILD_NUMBER} \
+                        $DOCKER_USERNAME/metrics-server:jenkins-${BUILD_NUMBER}
+
+                    docker push \
+                        $DOCKER_USERNAME/metrics-server:jenkins-${BUILD_NUMBER}
+                '''
+        }
+    }
+}
 
         stage('Test') {
             steps {
