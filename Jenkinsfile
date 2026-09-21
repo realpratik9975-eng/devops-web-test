@@ -43,8 +43,13 @@ pipeline {
         }
 
         stage('Deploy DEV') {
-            steps {
-                sh '''
+    steps {
+        sh '''
+            # Identify the currently deployed image
+            PREVIOUS_IMAGE=$(docker inspect metrics-app-dev --format '{{.Config.Image}}' 2>/dev/null || true)
+
+            echo "Previous deployed image: $PREVIOUS_IMAGE"
+
             cat > access.log <<EOF
 127.0.0.1 - - [20/Sep/2026 12:00:00] "GET / HTTP/1.1" 200 -
 127.0.0.1 - - [20/Sep/2026 12:00:01] "GET /abc HTTP/1.1" 404 -
@@ -62,6 +67,7 @@ EOF
         '''
     }
 }
+
         stage('Health Check DEV') {
             steps {
                 sh '''
