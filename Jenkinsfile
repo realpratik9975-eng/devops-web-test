@@ -42,14 +42,18 @@ pipeline {
             }
         }
 
-        stage('Deploy DEV') {
+      stage('Deploy DEV') {
     steps {
+        script {
+            env.PREVIOUS_IMAGE = sh(
+                script: "docker inspect metrics-app-dev --format '{{.Config.Image}}' 2>/dev/null || true",
+                returnStdout: true
+            ).trim()
+
+            echo "Previous deployed image: ${env.PREVIOUS_IMAGE}"
+        }
+
         sh '''
-            # Identify the currently deployed image
-            PREVIOUS_IMAGE=$(docker inspect metrics-app-dev --format '{{.Config.Image}}' 2>/dev/null || true)
-
-            echo "Previous deployed image: $PREVIOUS_IMAGE"
-
             cat > access.log <<EOF
 127.0.0.1 - - [20/Sep/2026 12:00:00] "GET / HTTP/1.1" 200 -
 127.0.0.1 - - [20/Sep/2026 12:00:01] "GET /abc HTTP/1.1" 404 -
@@ -68,15 +72,46 @@ EOF
     }
 }
 
-        stage('Health Check DEV') {
-            steps {
-                sh '''
-                    sleep 2
-                    curl -f http://localhost:8001/metrics
-                '''
+stage('Health Check DEV') {
+    steps {
+        sh '''
+            sleep 2
+            curl -f http://localhost:8001/metrics
+        '''
+    }
+
+    post {
+        failure {
+            script {
+                if (env.PREVIOUS_IMAGE?.trim()) {
+
+                    echo "Health check failed."
+                    echo "Rolling back to: ${env.PREVIOUS_IMAGE}"
+
+                    sh """
+                        docker rm -f metrics-app-dev || true
+
+                        docker pull ${env.PREVIOUS_IMAGE}
+
+                        docker run -d \
+                          --name metrics-app-dev \
+                          -p 8001:8000 \
+                          -v "\$WORKSPACE/access.log:/app/access.log:ro" \
+                          ${env.PREVIOUS_IMAGE}
+
+                        sleep 2
+
+                        curl -f http://localhost:8001/metrics
+                    """
+
+                    echo "Rollback completed successfully."
+                } else {
+                    echo "No previous image found. Rollback is not possible."
+                }
             }
         }
-      
+    }
+}
 
         stage('Approval for PROD') {
             steps {
